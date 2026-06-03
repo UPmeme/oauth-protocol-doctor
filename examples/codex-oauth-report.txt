@@ -1,0 +1,21 @@
+OAuth Protocol Doctor
+Protocol: codex
+
+Effective command:
+  "C:\Program Files\WindowsApps\OpenAI.Codex_26.527.7698.0_x64__2p2nqsd0c76g0\app\Codex.exe" "%1"
+
+Parsed command:
+  executable: C:\Program Files\WindowsApps\OpenAI.Codex_26.527.7698.0_x64__2p2nqsd0c76g0\app\Codex.exe
+  arguments:  "%1"
+  note:       quoted executable
+
+Findings:
+  [ok] Protocol registration exists.
+  [ok] URL Protocol marker exists.
+  [ok] Open command was found.
+  [ok] Executable path is quoted.
+  [info] Command passes the callback URL as an argument. If the app treats it as an app path, the app may need a vendor-side callback handling fix.
+
+Suggested next steps:
+  - Retry OAuth from a fresh browser tab after restarting the desktop app.
+  - If the app reports oauth_callback as an Electron app path, report the issue to the app vendor.
