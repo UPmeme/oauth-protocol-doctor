@@ -1,0 +1,31 @@
+<svg width="980" height="620" viewBox="0 0 980 620" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="OAuth Protocol Doctor terminal demo">
+  <rect width="980" height="620" rx="18" fill="#0B1020"/>
+  <rect x="1" y="1" width="978" height="618" rx="17" stroke="#27324A" stroke-width="2"/>
+  <rect x="0" y="0" width="980" height="54" rx="18" fill="#111827"/>
+  <circle cx="28" cy="27" r="7" fill="#FF5F56"/>
+  <circle cx="51" cy="27" r="7" fill="#FFBD2E"/>
+  <circle cx="74" cy="27" r="7" fill="#27C93F"/>
+  <text x="104" y="33" fill="#CBD5E1" font-family="Consolas, Menlo, monospace" font-size="16">PowerShell - oauth-protocol-doctor</text>
+
+  <text x="32" y="92" fill="#60A5FA" font-family="Consolas, Menlo, monospace" font-size="17">PS&gt;</text>
+  <text x="74" y="92" fill="#E5E7EB" font-family="Consolas, Menlo, monospace" font-size="17">.\scripts\oauth-protocol-doctor.ps1 -Protocol codex -Explain</text>
+
+  <text x="32" y="138" fill="#22D3EE" font-family="Consolas, Menlo, monospace" font-size="18" font-weight="700">OAuth Protocol Doctor Explanation</text>
+  <text x="32" y="170" fill="#E5E7EB" font-family="Consolas, Menlo, monospace" font-size="16">Protocol: codex</text>
+
+  <text x="32" y="222" fill="#A7F3D0" font-family="Consolas, Menlo, monospace" font-size="16" font-weight="700">Summary:</text>
+  <text x="56" y="252" fill="#E5E7EB" font-family="Consolas, Menlo, monospace" font-size="15">'codex:' is declared by an AppX/MSIX package manifest,</text>
+  <text x="56" y="278" fill="#E5E7EB" font-family="Consolas, Menlo, monospace" font-size="15">but no effective classic shell command was found.</text>
+
+  <text x="32" y="330" fill="#FDE68A" font-family="Consolas, Menlo, monospace" font-size="16" font-weight="700">What this means:</text>
+  <text x="56" y="360" fill="#E5E7EB" font-family="Consolas, Menlo, monospace" font-size="15">This usually points to a local Windows callback handoff problem,</text>
+  <text x="56" y="386" fill="#E5E7EB" font-family="Consolas, Menlo, monospace" font-size="15">not a Google, GitHub, or Microsoft OAuth provider consent problem.</text>
+
+  <text x="32" y="438" fill="#FCA5A5" font-family="Consolas, Menlo, monospace" font-size="16" font-weight="700">Recommended next steps:</text>
+  <text x="56" y="468" fill="#E5E7EB" font-family="Consolas, Menlo, monospace" font-size="15">- Repair or re-register the Store/MSIX package.</text>
+  <text x="56" y="494" fill="#E5E7EB" font-family="Consolas, Menlo, monospace" font-size="15">- Retry OAuth from a fresh browser tab.</text>
+  <text x="56" y="520" fill="#E5E7EB" font-family="Consolas, Menlo, monospace" font-size="15">- Include sanitized diagnostic output in vendor bug reports.</text>
+
+  <rect x="32" y="554" width="916" height="1" fill="#27324A"/>
+  <text x="32" y="586" fill="#94A3B8" font-family="Consolas, Menlo, monospace" font-size="14">Read-only diagnostics for Windows OAuth callback protocol handlers</text>
+</svg>

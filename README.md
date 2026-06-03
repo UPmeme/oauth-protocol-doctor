@@ -6,6 +6,8 @@
 
 Diagnose Windows URL protocol handlers used by OAuth desktop callbacks.
 
+![OAuth Protocol Doctor terminal demo](assets/demo.svg)
+
 OAuth desktop apps often rely on custom callback URLs such as `codex://oauth_callback`,
 `vscode://callback`, or `myapp://auth`. When Windows, a browser, or an Electron app
 handles that URL incorrectly, the OAuth flow can fail with confusing errors.

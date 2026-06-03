@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.3.1
+
+- Added a terminal-style README demo image.
+- Improved first-glance project presentation for GitHub visitors.
+
 ## 0.3.0
 
 - Added `-Explain` mode for human-readable diagnostic interpretation.
