@@ -72,6 +72,18 @@ Check a sample callback URL:
 .\scripts\oauth-protocol-doctor.ps1 -Protocol codex -CallbackUrl "codex://oauth_callback?state=demo"
 ```
 
+List registered URL protocols:
+
+```powershell
+.\scripts\oauth-protocol-doctor.ps1 -ListProtocols
+```
+
+Save a report to disk:
+
+```powershell
+.\scripts\oauth-protocol-doctor.ps1 -Protocol codex -Json -OutFile .\reports\codex.json
+```
+
 ## Example Output
 
 ```text

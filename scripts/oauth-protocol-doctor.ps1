@@ -1,11 +1,14 @@
 param(
-  [Parameter(Mandatory = $true)]
   [ValidatePattern("^[A-Za-z][A-Za-z0-9+.-]*$")]
   [string]$Protocol,
 
   [string]$CallbackUrl,
 
-  [switch]$Json
+  [switch]$Json,
+
+  [switch]$ListProtocols,
+
+  [string]$OutFile
 )
 
 $ErrorActionPreference = "Stop"
@@ -97,6 +100,88 @@ function New-Finding {
     level = $Level
     message = $Message
   }
+}
+
+function Get-ProtocolInventory {
+  $roots = @(
+    @{ scope = "currentUser"; path = "HKCU:\Software\Classes" },
+    @{ scope = "localMachine"; path = "HKLM:\Software\Classes" }
+  )
+
+  $items = New-Object System.Collections.Generic.List[object]
+
+  foreach ($root in $roots) {
+    if (-not (Test-Path -Path $root.path)) {
+      continue
+    }
+
+    Get-ChildItem -Path $root.path -ErrorAction SilentlyContinue | ForEach-Object {
+      $urlProtocol = Get-RegistryValue -Path $_.PSPath -Name "URL Protocol"
+      if ($urlProtocol -ne $null) {
+        $commandPath = Join-Path $_.PSPath "shell\open\command"
+        $items.Add([ordered]@{
+          protocol = $_.PSChildName
+          scope = $root.scope
+          displayName = Get-DefaultValue $_.PSPath
+          command = Get-DefaultValue $commandPath
+        })
+      }
+    }
+  }
+
+  return $items | Sort-Object protocol, scope
+}
+
+function Write-OutputOrFile {
+  param(
+    [Parameter(Mandatory = $true)][string]$Text,
+    [string]$Path
+  )
+
+  if ($Path) {
+    $directory = Split-Path -Path $Path -Parent
+    if ($directory -and -not (Test-Path -Path $directory)) {
+      New-Item -Path $directory -ItemType Directory -Force | Out-Null
+    }
+    Set-Content -Path $Path -Value $Text -Encoding UTF8
+    Write-Host "Wrote report to $Path" -ForegroundColor Green
+  }
+  else {
+    Write-Output $Text
+  }
+}
+
+if ($ListProtocols) {
+  $inventory = Get-ProtocolInventory
+  if ($Json) {
+    $text = $inventory | ConvertTo-Json -Depth 6
+    Write-OutputOrFile -Text $text -Path $OutFile
+    exit
+  }
+
+  $lines = New-Object System.Collections.Generic.List[string]
+  $lines.Add("OAuth Protocol Doctor")
+  $lines.Add("Registered URL protocols")
+  $lines.Add("")
+
+  if (-not $inventory) {
+    $lines.Add("(none found)")
+  }
+  else {
+    foreach ($item in $inventory) {
+      $lines.Add("- $($item.protocol) [$($item.scope)]")
+      if ($item.command) {
+        $lines.Add("  $($item.command)")
+      }
+    }
+  }
+
+  Write-OutputOrFile -Text ($lines -join [Environment]::NewLine) -Path $OutFile
+  exit
+}
+
+if (-not $Protocol) {
+  throw "Specify -Protocol <name> or use -ListProtocols."
 }
 
 $protocolName = $Protocol.TrimEnd(":")
@@ -207,32 +292,36 @@ $report = [ordered]@{
 }
 
 if ($Json) {
-  $report | ConvertTo-Json -Depth 8
+  $text = $report | ConvertTo-Json -Depth 8
+  Write-OutputOrFile -Text $text -Path $OutFile
   exit
 }
 
-Write-Host "OAuth Protocol Doctor" -ForegroundColor Cyan
-Write-Host "Protocol: $protocolName"
-Write-Host ""
-Write-Host "Effective command:"
+$outputLines = New-Object System.Collections.Generic.List[string]
+$outputLines.Add("OAuth Protocol Doctor")
+$outputLines.Add("Protocol: $protocolName")
+$outputLines.Add("")
+$outputLines.Add("Effective command:")
 if ($effectiveCommand) {
-  Write-Host "  $effectiveCommand"
+  $outputLines.Add("  $effectiveCommand")
 }
 else {
-  Write-Host "  (not found)"
+  $outputLines.Add("  (not found)")
 }
-Write-Host ""
-Write-Host "Parsed command:"
-Write-Host "  executable: $($parsed.executable)"
-Write-Host "  arguments:  $($parsed.arguments)"
-Write-Host "  note:       $($parsed.parseNote)"
-Write-Host ""
-Write-Host "Findings:"
+$outputLines.Add("")
+$outputLines.Add("Parsed command:")
+$outputLines.Add("  executable: $($parsed.executable)")
+$outputLines.Add("  arguments:  $($parsed.arguments)")
+$outputLines.Add("  note:       $($parsed.parseNote)")
+$outputLines.Add("")
+$outputLines.Add("Findings:")
 foreach ($finding in $findings) {
-  Write-Host "  [$($finding.level)] $($finding.message)"
+  $outputLines.Add("  [$($finding.level)] $($finding.message)")
 }
-Write-Host ""
-Write-Host "Suggested next steps:"
+$outputLines.Add("")
+$outputLines.Add("Suggested next steps:")
 foreach ($suggestion in $suggestions) {
-  Write-Host "  - $suggestion"
+  $outputLines.Add("  - $suggestion")
 }
+
+Write-OutputOrFile -Text ($outputLines -join [Environment]::NewLine) -Path $OutFile
