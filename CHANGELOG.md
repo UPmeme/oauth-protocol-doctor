@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.2.1
+
+- Added a real-world Codex/Gmail OAuth callback case study.
+- Documented how to distinguish OAuth provider consent from local Windows callback handoff failures.
+
 ## 0.2.0
 
 - Added AppX/MSIX manifest protocol detection.

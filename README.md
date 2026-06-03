@@ -132,6 +132,10 @@ The JSON mode is useful when pasting diagnostics into a bug report or an AI assi
 - Add examples for VS Code, GitHub Desktop, and custom Electron apps.
 - Package as a PowerShell Gallery module.
 
+## Case Studies
+
+- [Codex Gmail OAuth callback failure on Windows](docs/codex-gmail-oauth-case-study.md)
+
 ## Scope
 
 This tool does not perform OAuth, approve app consent, or bypass organization policy.
