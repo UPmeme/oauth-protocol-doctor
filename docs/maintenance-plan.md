@@ -11,6 +11,8 @@ Windows Store and MSIX-packaged desktop apps can declare URL protocols in
 paths. The tool should detect these declarations and explain mismatches between
 manifest declarations and effective shell registration.
 
+Status: shipped in `v0.2.0` for current-user packages and explicit manifest paths.
+
 ### Improve Electron callback warnings
 
 Some Electron apps treat a callback URL such as `codex://oauth_callback?...` as an

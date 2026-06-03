@@ -40,4 +40,14 @@ if ($saved.tool -ne "oauth-protocol-doctor") {
 }
 Remove-Item -Path $tmp -Force
 
+Write-Host "Running AppX manifest smoke test when available..."
+$codexManifest = "C:\Program Files\WindowsApps\OpenAI.Codex_26.527.7698.0_x64__2p2nqsd0c76g0\AppxManifest.xml"
+if (Test-Path -LiteralPath $codexManifest) {
+  $appxJson = & powershell -NoProfile -ExecutionPolicy Bypass -File $script -Protocol codex -AppxManifestPath $codexManifest -Json
+  $appxReport = $appxJson | ConvertFrom-Json
+  if (-not $appxReport.appxPackages) {
+    throw "Expected AppX package declarations in Codex manifest smoke test."
+  }
+}
+
 Write-Host "Smoke tests passed." -ForegroundColor Green

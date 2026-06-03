@@ -31,6 +31,7 @@ callback handoff.
 ## Features
 
 - Checks `HKCU`, `HKLM`, and effective `HKCR` protocol registrations.
+- Checks AppX/MSIX manifest protocol declarations when available.
 - Shows the command Windows will use for a protocol callback.
 - Detects common issues:
   - missing protocol registration
@@ -82,6 +83,12 @@ Save a report to disk:
 
 ```powershell
 .\scripts\oauth-protocol-doctor.ps1 -Protocol codex -Json -OutFile .\reports\codex.json
+```
+
+Inspect an explicit AppX/MSIX manifest:
+
+```powershell
+.\scripts\oauth-protocol-doctor.ps1 -Protocol codex -AppxManifestPath "C:\Program Files\WindowsApps\OpenAI.Codex_...\AppxManifest.xml"
 ```
 
 ## Example Output

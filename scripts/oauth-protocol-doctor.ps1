@@ -8,6 +8,8 @@ param(
 
   [switch]$ListProtocols,
 
+  [string[]]$AppxManifestPath,
+
   [string]$OutFile
 )
 
@@ -103,6 +105,8 @@ function New-Finding {
 }
 
 function Get-ProtocolInventory {
+  param([string[]]$ManifestPaths)
+
   $roots = @(
     @{ scope = "currentUser"; path = "HKCU:\Software\Classes" },
     @{ scope = "localMachine"; path = "HKLM:\Software\Classes" }
@@ -129,7 +133,101 @@ function Get-ProtocolInventory {
     }
   }
 
+  foreach ($appxProtocol in (Get-AppxProtocolDeclarations -ManifestPaths $ManifestPaths)) {
+    $items.Add([ordered]@{
+      protocol = $appxProtocol.protocol
+      scope = "appx"
+      displayName = $appxProtocol.packageName
+      command = $appxProtocol.executable
+    })
+  }
+
   return $items | Sort-Object protocol, scope
+}
+
+function Get-AppxProtocolDeclarations {
+  param(
+    [string]$ProtocolName,
+    [string[]]$ManifestPaths
+  )
+
+  $items = New-Object System.Collections.Generic.List[object]
+  $manifestItems = New-Object System.Collections.Generic.List[object]
+
+  foreach ($manifestPath in @($ManifestPaths)) {
+    if (-not $manifestPath) {
+      continue
+    }
+
+    if (Test-Path -LiteralPath $manifestPath) {
+      $manifestItems.Add([ordered]@{
+        packageName = Split-Path (Split-Path $manifestPath -Parent) -Leaf
+        packageFullName = $null
+        installLocation = Split-Path $manifestPath -Parent
+        manifestPath = $manifestPath
+      })
+    }
+  }
+
+  try {
+    foreach ($package in (Get-AppxPackage -ErrorAction Stop)) {
+      if (-not $package.InstallLocation) {
+        continue
+      }
+
+      $manifestPath = Join-Path $package.InstallLocation "AppxManifest.xml"
+      if (Test-Path -LiteralPath $manifestPath) {
+        $manifestItems.Add([ordered]@{
+          packageName = $package.Name
+          packageFullName = $package.PackageFullName
+          installLocation = $package.InstallLocation
+          manifestPath = $manifestPath
+        })
+      }
+    }
+  }
+  catch {}
+
+  $seenManifestPaths = New-Object System.Collections.Generic.HashSet[string]
+  foreach ($manifestItem in $manifestItems) {
+    $currentManifestPath = $manifestItem["manifestPath"]
+    if (-not $currentManifestPath -or -not $seenManifestPaths.Add($currentManifestPath)) {
+      continue
+    }
+
+    try {
+      [xml]$manifest = Get-Content -LiteralPath $currentManifestPath -Raw -ErrorAction Stop
+    }
+    catch {
+      continue
+    }
+
+    $protocolNodes = @($manifest.SelectNodes("//*[local-name()='Extension' and @Category='windows.protocol']/*[local-name()='Protocol']"))
+    foreach ($protocolNode in $protocolNodes) {
+      $name = $protocolNode.GetAttribute("Name")
+      if (-not $name) {
+        continue
+      }
+
+      if ($ProtocolName -and $name -ne $ProtocolName) {
+        continue
+      }
+
+      $application = $protocolNode.SelectSingleNode("ancestor::*[local-name()='Application'][1]")
+
+      $items.Add([ordered]@{
+        protocol = $name
+        packageName = $manifestItem["packageName"]
+        packageFullName = $manifestItem["packageFullName"]
+        installLocation = $manifestItem["installLocation"]
+        manifestPath = $manifestItem["manifestPath"]
+        applicationId = if ($application) { $application.GetAttribute("Id") } else { $null }
+        executable = if ($application) { $application.GetAttribute("Executable") } else { $null }
+      })
+    }
+  }
+
+  return $items
 }
 
 function Write-OutputOrFile {
@@ -152,7 +250,7 @@ function Write-OutputOrFile {
 }
 
 if ($ListProtocols) {
-  $inventory = Get-ProtocolInventory
+  $inventory = Get-ProtocolInventory -ManifestPaths $AppxManifestPath
   if ($Json) {
     $text = $inventory | ConvertTo-Json -Depth 6
     Write-OutputOrFile -Text $text -Path $OutFile
@@ -205,6 +303,8 @@ foreach ($entry in $paths.GetEnumerator()) {
   }
 }
 
+$appxPackages = @(Get-AppxProtocolDeclarations -ProtocolName $protocolName -ManifestPaths $AppxManifestPath)
+
 $effectiveCommand = $registrations.effective.command
 if (-not $effectiveCommand) {
   $effectiveCommand = $registrations.currentUser.command
@@ -235,6 +335,13 @@ if ($effectiveCommand) {
 }
 else {
   $findings.Add((New-Finding error "Open command was not found."))
+}
+
+if ($appxPackages.Count -gt 0) {
+  $findings.Add((New-Finding info "Protocol is declared by $($appxPackages.Count) AppX/MSIX package(s)."))
+  if (-not $effectiveCommand) {
+    $findings.Add((New-Finding warn "AppX/MSIX manifest declaration exists, but no effective classic shell command was found. The package registration may need repair."))
+  }
 }
 
 if ($parsed.executable) {
@@ -271,6 +378,9 @@ $suggestions = New-Object System.Collections.Generic.List[string]
 if (-not $effectiveCommand) {
   $suggestions.Add("Install or repair the desktop app that owns '${protocolName}:'.")
 }
+if ($appxPackages.Count -gt 0 -and -not $effectiveCommand) {
+  $suggestions.Add("If this is a Store/MSIX app, try repairing or re-registering the package so Windows exposes the protocol handler.")
+}
 if ($parsed.executable -like "* *" -and -not $parsed.quotedExecutable) {
   $suggestions.Add("Quote the executable path in the protocol open command.")
 }
@@ -285,6 +395,7 @@ $report = [ordered]@{
   protocol = $protocolName
   callbackUrl = $CallbackUrl
   registrations = $registrations
+  appxPackages = $appxPackages
   effectiveCommand = $effectiveCommand
   parsedCommand = $parsed
   findings = $findings
@@ -313,6 +424,20 @@ $outputLines.Add("Parsed command:")
 $outputLines.Add("  executable: $($parsed.executable)")
 $outputLines.Add("  arguments:  $($parsed.arguments)")
 $outputLines.Add("  note:       $($parsed.parseNote)")
+$outputLines.Add("")
+$outputLines.Add("AppX/MSIX declarations:")
+if ($appxPackages.Count -gt 0) {
+  foreach ($package in $appxPackages) {
+    $outputLines.Add("  - $($package.packageName) ($($package.applicationId))")
+    $outputLines.Add("    manifest: $($package.manifestPath)")
+    if ($package.executable) {
+      $outputLines.Add("    executable: $($package.executable)")
+    }
+  }
+}
+else {
+  $outputLines.Add("  (none found)")
+}
 $outputLines.Add("")
 $outputLines.Add("Findings:")
 foreach ($finding in $findings) {
