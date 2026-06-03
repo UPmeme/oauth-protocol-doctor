@@ -10,6 +10,8 @@ param(
 
   [string[]]$AppxManifestPath,
 
+  [switch]$Explain,
+
   [string]$OutFile
 )
 
@@ -249,6 +251,72 @@ function Write-OutputOrFile {
   }
 }
 
+function Get-ExplanationText {
+  param(
+    [Parameter(Mandatory = $true)]$Report
+  )
+
+  $lines = New-Object System.Collections.Generic.List[string]
+  $lines.Add("OAuth Protocol Doctor Explanation")
+  $lines.Add("Protocol: $($Report.protocol)")
+  $lines.Add("")
+
+  if ($Report.effectiveCommand) {
+    $lines.Add("Summary:")
+    $lines.Add("  Windows has an effective command for '$($Report.protocol):'. The browser should be able to hand callback URLs to the registered handler.")
+  }
+  elseif ($Report.appxPackages.Count -gt 0) {
+    $lines.Add("Summary:")
+    $lines.Add("  '$($Report.protocol):' is declared by an AppX/MSIX package manifest, but no effective classic shell command was found.")
+    $lines.Add("  This can happen when a Store/MSIX app declares a protocol but Windows has not exposed or repaired the shell registration for the current user.")
+  }
+  else {
+    $lines.Add("Summary:")
+    $lines.Add("  No effective Windows registration was found for '$($Report.protocol):'. OAuth callbacks using this protocol are unlikely to reach the desktop app.")
+  }
+
+  $lines.Add("")
+  $lines.Add("What this means:")
+
+  if ($Report.callbackUrl) {
+    $lines.Add("  The tested callback URL was '$($Report.callbackUrl)'.")
+  }
+
+  if (-not $Report.effectiveCommand -and $Report.appxPackages.Count -eq 0) {
+    $lines.Add("  The local machine does not appear to know which app should receive this protocol.")
+  }
+
+  if (-not $Report.effectiveCommand -and $Report.appxPackages.Count -gt 0) {
+    $lines.Add("  The app package claims the protocol, but the effective shell lookup does not provide a runnable command.")
+    $lines.Add("  In OAuth flows, this usually points to a local callback handoff problem rather than a provider consent problem.")
+  }
+
+  if ($Report.parsedCommand.executable -and -not $Report.parsedCommand.quotedExecutable -and $Report.parsedCommand.executable -like "* *") {
+    $lines.Add("  The executable path appears to contain spaces and is not quoted, which can cause Windows to split the command incorrectly.")
+  }
+
+  if ($Report.parsedCommand.executable -and $Report.parsedCommand.arguments -notmatch "%1") {
+    $lines.Add("  The command does not appear to pass the callback URL argument, so the app may launch without receiving OAuth state.")
+  }
+
+  $lines.Add("")
+  $lines.Add("Recommended next steps:")
+  foreach ($suggestion in $Report.suggestions) {
+    $lines.Add("  - $suggestion")
+  }
+
+  $lines.Add("")
+  $lines.Add("Bug report checklist:")
+  $lines.Add("  - App name and version")
+  $lines.Add("  - Windows version")
+  $lines.Add("  - Browser used for OAuth")
+  $lines.Add("  - Sanitized callback protocol name")
+  $lines.Add("  - This diagnostic output")
+  $lines.Add("  - Do not include OAuth codes, state tokens, cookies, or account email addresses")
+
+  return $lines -join [Environment]::NewLine
+}
+
 if ($ListProtocols) {
   $inventory = Get-ProtocolInventory -ManifestPaths $AppxManifestPath
   if ($Json) {
@@ -400,6 +468,12 @@ $report = [ordered]@{
   parsedCommand = $parsed
   findings = $findings
   suggestions = $suggestions
+}
+
+if ($Explain) {
+  $text = Get-ExplanationText -Report $report
+  Write-OutputOrFile -Text $text -Path $OutFile
+  exit
 }
 
 if ($Json) {

@@ -85,6 +85,12 @@ Save a report to disk:
 .\scripts\oauth-protocol-doctor.ps1 -Protocol codex -Json -OutFile .\reports\codex.json
 ```
 
+Generate a human-readable explanation:
+
+```powershell
+.\scripts\oauth-protocol-doctor.ps1 -Protocol codex -Explain
+```
+
 Inspect an explicit AppX/MSIX manifest:
 
 ```powershell
@@ -117,6 +123,15 @@ The JSON mode is useful when pasting diagnostics into a bug report or an AI assi
 
 ```powershell
 .\scripts\oauth-protocol-doctor.ps1 -Protocol codex -CallbackUrl "codex://oauth_callback?state=demo" -Json
+```
+
+## Explanation Mode
+
+`-Explain` turns the raw diagnostic result into a short interpretation with
+recommended next steps and a bug report checklist:
+
+```powershell
+.\scripts\oauth-protocol-doctor.ps1 -Protocol codex -Explain
 ```
 
 ## Test

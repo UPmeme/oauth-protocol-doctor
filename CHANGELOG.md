@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.3.0
+
+- Added `-Explain` mode for human-readable diagnostic interpretation.
+- Added a bug report checklist to explanation output.
+- Improved usefulness of reports for support requests and AI-assisted debugging.
+
 ## 0.2.1
 
 - Added a real-world Codex/Gmail OAuth callback case study.

@@ -50,4 +50,10 @@ if (Test-Path -LiteralPath $codexManifest) {
   }
 }
 
+Write-Host "Running explanation smoke test..."
+$explanation = & powershell -NoProfile -ExecutionPolicy Bypass -File $script -Protocol codex -Explain
+if (($explanation -join "`n") -notmatch "Bug report checklist") {
+  throw "Expected explanation output to include bug report checklist."
+}
+
 Write-Host "Smoke tests passed." -ForegroundColor Green
